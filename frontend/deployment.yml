@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-app
+  namespace: frontend-service
+spec:
+  replicas: 1  # Yeterli olacak şekilde ayarlayabilirsin
+  selector:
+    matchLabels:
+      app: frontend-app
+  template:
+    metadata:
+      labels:
+        app: frontend-app
+    spec:
+      containers:
+      - name: frontend-app
+        image: 571600829776.dkr.ecr.ap-south-1.amazonaws.com/team-c/frontend:latest
+        ports:
+        - containerPort: 80
+        imagePullPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-app-service
+  namespace: frontend-service
+spec:
+  type: LoadBalancer  # LoadBalancer türünde bir servis oluşturuyoruz
+  ports:
+    - port: 80
+      targetPort: 80
+  selector:
+    app: frontend-app
