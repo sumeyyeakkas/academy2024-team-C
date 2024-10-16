@@ -1,0 +1,63 @@
+pipeline {
+    agent any
+    environment {
+        ECR_REGISTRY = "571600829776.dkr.ecr.ap-south-1.amazonaws.com"  
+        //AWS_ACCESS_KEY_ID = credentials('aws-access-key-id')
+        //AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
+        AWS_CREDENTIALS_ID = 'aws-credentials'
+        APP_REPO_NAME = "team-c/frontend"  
+        VERSION = "1.0"  
+        PATH = "/usr/local/bin/:${env.PATH}"
+        AWS_REGION = "ap-south-1"  
+    }
+
+
+    stages {
+        stage('Checkout') {
+            steps {
+                echo "Checking out repo"
+                git branch: 'main', credentialsId: '52bedc29-61ca-455c-af31-090c8108c6a7', url: 'https://github.com/sumeyyeakkas/academy2024-team-C'
+            }
+        }
+        
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    sh '''
+                    pwd
+                    cd frontend
+                    pwd
+                    ls
+                    docker build --force-rm -t "$ECR_REGISTRY/$APP_REPO_NAME:$VERSION" .
+                    docker image ls
+                    '''
+                }
+            }
+        }
+
+        stage('Push Image to ECR Repo') {
+            steps {
+                script {
+                        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: "${AWS_CREDENTIALS_ID}"]]) {
+                        def imageTag = "${ECR_REGISTRY}/${APP_REPO_NAME}:$VERSION"
+                        sh '''
+                        
+                        aws ecr get-login-password --region "${AWS_REGION}" | docker login --username AWS --password-stdin "${ECR_REGISTRY}"
+                        docker push ''' + imageTag + '''
+                        '''
+                    }
+                }
+            }
+        }
+
+
+        
+    }
+
+    post {
+        always {
+            echo 'Deleting all local images'  =
+            sh 'docker image prune -af'
+        }
+    }
+}

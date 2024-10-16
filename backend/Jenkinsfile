@@ -1,0 +1,60 @@
+pipeline {
+    agent any
+    environment {
+        AWS_ACCOUNT_ID = "571600829776"
+        AWS_DEFAULT_REGION = "ap-south-1"
+        AWS_CREDENTIALS_ID = 'aws-credentials'
+        IMAGE_REPO_NAME = "team-c/backend"
+        DOCKER_IMAGE = "backend"
+        IMAGE_TAG = "1.1"
+        REPOSITORY_URI = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${IMAGE_REPO_NAME}"
+    }
+    stages {
+        stage('Checkout') {
+            steps {
+                echo "Checking out repo"
+                git branch: 'main', credentialsId: '52bedc29-61ca-455c-af31-090c8108c6a7', url: 'https://github.com/sumeyyeakkas/academy2024-team-C'
+            }
+        }
+        stage('Prepare Environment') {
+            steps {
+                script {
+                    sh "chmod 777 ./backend/Dockerfile"
+                }
+            }
+        }
+        
+        stage('Run Docker Build') {
+            steps {
+                script {
+                    sh '''
+                     pwd
+                     ls
+                     cd ./backend && ls
+                     docker build --force-rm -t "$DOCKER_IMAGE:$IMAGE_TAG" .
+                     echo Docker built successfully
+                    '''
+                }
+            }
+        }
+     
+        stage('Push Image to ECR Repo') {
+            steps {
+                script {
+                        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: "${AWS_CREDENTIALS_ID}"]]) {
+                           sh '''
+                           aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $REPOSITORY_URI
+                           docker tag ${DOCKER_IMAGE}:${IMAGE_TAG} ${REPOSITORY_URI}:${IMAGE_TAG}
+                           docker push ${REPOSITORY_URI}:${IMAGE_TAG}
+                         '''
+                    }
+                }
+            }
+        }
+    }
+    post {
+        always {
+            cleanWs()
+        }
+    }
+}
