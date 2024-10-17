@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: backend-deployment
-  namespace: apptc
+  namespace: backend-service
   labels:
     app: backend
 spec:
@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: backend
-        image: 571600829776.dkr.ecr.ap-south-1.amazonaws.com/team-c/backend:latest
+        image: 571600829776.dkr.ecr.ap-south-1.amazonaws.com/team-c/backend:1.0
         ports:
         - containerPort: 8080
         imagePullPolicy: Always
