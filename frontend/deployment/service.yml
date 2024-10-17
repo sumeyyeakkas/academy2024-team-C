@@ -3,6 +3,9 @@ kind: Service
 metadata:
   name: frontend-app-service
   namespace: frontend-service
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "alb"
+    alb.ingress.kubernetes.io/scheme: internet-facing
 spec:
   type: LoadBalancer
   selector:
