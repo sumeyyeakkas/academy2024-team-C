@@ -1,0 +1,10 @@
+namespace: frontend-service
+
+replicaCount: 1
+
+image:
+  repository: 571600829776.dkr.ecr.ap-south-1.amazonaws.com/team-c/frontend
+  tag: "latest"
+
+ingress:
+  host: "frontend.yourdomain.com"

@@ -1,0 +1,10 @@
+namespace: backend-service
+
+replicaCount: 2
+
+image:
+  repository: 571600829776.dkr.ecr.ap-south-1.amazonaws.com/team-c/backend
+  tag: "1.0"
+
+ingress:
+  host: 
