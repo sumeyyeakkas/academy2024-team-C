@@ -2,14 +2,15 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: backend-ingress
-  namespace: apptc
+  namespace: backend-service
   annotations:
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
     kubernetes.io/ingress.class: alb
+
 spec:
   rules:
-    - host: k8s-default-backends-b60e269c7e-b107486b00208b5e.elb.ap-south-1.amazonaws.com
+    - host: 
       http:
         paths:
           - path: /
