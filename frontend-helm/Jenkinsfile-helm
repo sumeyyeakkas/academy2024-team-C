@@ -1,0 +1,93 @@
+pipeline {
+    agent any
+    environment {
+        ECR_REGISTRY = "571600829776.dkr.ecr.ap-south-1.amazonaws.com"  
+        AWS_CREDENTIALS_ID = 'aws-credentials'
+        APP_REPO_NAME = "team-c/frontend"  
+        TAG = "${env.BUILD_NUMBER}"  
+        PATH = "/usr/local/bin/:${env.PATH}"
+        AWS_REGION = "ap-south-1"  
+        CLUSTER_NAME = "team-c-eks-cluster"  
+        RELEASE_NAME = "frontend-release"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                echo "Checking out repo"
+                git branch: 'main', credentialsId: '52bedc29-61ca-455c-af31-090c8108c6a7', url: 'https://github.com/sumeyyeakkas/academy2024-team-C'
+            }
+        }
+        
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    sh '''
+                    pwd
+                    cd frontend
+                    pwd
+                    ls
+                    docker build --force-rm -t "$ECR_REGISTRY/$APP_REPO_NAME:$TAG" .
+                    docker image ls
+                    '''
+                }
+            }
+        }
+
+        stage('Push Image to ECR Repo') {
+            steps {
+                script {
+                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: "${AWS_CREDENTIALS_ID}"]]) {
+                        def imageTag = "${ECR_REGISTRY}/${APP_REPO_NAME}:$TAG"
+                        sh '''
+                        aws ecr get-login-password --region "${AWS_REGION}" | docker login --username AWS --password-stdin "${ECR_REGISTRY}"
+                        docker push ''' + imageTag + '''
+                        '''
+                    }
+                }
+            }
+        }
+         stage('Update Deployment YAML') {
+            steps {
+                script {
+                    def imageName = "${ECR_REGISTRY}/${APP_REPO_NAME}"
+                    
+                    
+                    sh '''
+                    
+                    cd frontend-helm
+                    pwd
+                    ls
+                    sed -i 's#repository: .*#repository: ''' + imageName + '''#' values.yaml
+                    sed -i 's#tag: .*#tag: ''' + TAG + '''#' values.yaml
+                    cat values.yaml 
+                    '''
+                }
+            }
+        }
+        
+        stage('Integrate Jenkins with EKS Cluster and Deploy') {
+            steps {
+                script {
+                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: "${AWS_CREDENTIALS_ID}"]]) {
+                        sh '''
+                        aws eks --region ap-south-1 update-kubeconfig --name team-c-eks-cluster --alias team-c-eks-cluster
+                        cd ./frontend-helm
+                        pwd
+                        ls
+                        helm upgrade --install ${RELEASE_NAME} .
+                        '''
+                    }
+                }
+            }
+        }
+        
+    }
+
+    post {
+        always {
+            echo 'Deleting all local images' 
+            sh 'docker image prune -af'
+        }
+    }
+}
